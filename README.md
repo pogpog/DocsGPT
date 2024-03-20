@@ -23,9 +23,6 @@ Say goodbye to time-consuming manual searches, and let <strong><a href="https://
  
 </div>
 
-### 📣🎅❄️ Special Seasonal 🎄🌟 Reward 🎁☃️ for Contributions.
-Starting from 25th December for the next 3 weeks, contribute a meaningful PR and earn a special holopin! This is an amazing opportunity not only to hone your skills but also to make memorable contributions.
-
 ### Production Support / Help for Companies:
 
 We're eager to provide personalized assistance when deploying your DocsGPT to a live environment.
@@ -43,7 +40,7 @@ You can find our roadmap [here](https://github.com/orgs/arc53/projects/2). Pleas
 
 | Name                                                                  | Base Model  | Requirements (or similar) |
 | --------------------------------------------------------------------- | ----------- | ------------------------- |
-| [Docsgpt-7b-falcon](https://huggingface.co/Arc53/docsgpt-7b-falcon)   | Falcon-7b   | 1xA10G gpu                |
+| [Docsgpt-7b-mistral](https://huggingface.co/Arc53/docsgpt-7b-mistral)   | Mistral-7b   | 1xA10G gpu                |
 | [Docsgpt-14b](https://huggingface.co/Arc53/docsgpt-14b)               | llama-2-14b | 2xA10 gpu's               |
 | [Docsgpt-40b-falcon](https://huggingface.co/Arc53/docsgpt-40b-falcon) | falcon-40b  | 8xA10G gpu's              |
 
@@ -126,7 +123,7 @@ docker compose -f docker-compose-dev.yaml up -d
 > [!Note]
 > Make sure you have Python 3.10 or 3.11 installed.
 
-1. Export required environment variables or prepare a `.env` file in the `/application` folder:
+1. Export required environment variables or prepare a `.env` file in the project folder:
    - Copy [.env_sample](https://github.com/arc53/DocsGPT/blob/main/application/.env_sample) and create `.env`.
 
 (check out [`application/core/settings.py`](application/core/settings.py) if you want to see more config options.)
@@ -155,11 +152,12 @@ You can use the script below, or download it manually from [here](https://d3dg10
 wget https://d3dg1063dc54p9.cloudfront.net/models/embeddings/mpnet-base-v2.zip
 unzip mpnet-base-v2.zip -d model
 rm mpnet-base-v2.zip
+```
 
-4. Change to the `application/` subdir by the command `cd application/` and install dependencies for the backend:
+4. Install dependencies for the backend:
 
 ```commandline
-pip install -r requirements.txt
+pip install -r application/requirements.txt
 ```
 
 5. Run the app using `flask --app application/app.py run --host=0.0.0.0 --port=7091`.

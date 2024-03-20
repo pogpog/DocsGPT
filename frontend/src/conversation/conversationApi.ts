@@ -5,6 +5,7 @@ const apiHost = import.meta.env.VITE_API_HOST || 'https://docsapi.arc53.com';
 
 export function fetchAnswerApi(
   question: string,
+  signal: AbortSignal,
   apiKey: string,
   selectedDocs: Doc,
   history: Array<any> = [],
@@ -65,6 +66,7 @@ export function fetchAnswerApi(
       conversation_id: conversationId,
       prompt_id: promptId,
     }),
+    signal,
   })
     .then((response) => {
       if (response.ok) {
@@ -87,6 +89,7 @@ export function fetchAnswerApi(
 
 export function fetchAnswerSteaming(
   question: string,
+  signal: AbortSignal,
   apiKey: string,
   selectedDocs: Doc,
   history: Array<any> = [],
@@ -128,13 +131,13 @@ export function fetchAnswerSteaming(
       conversation_id: conversationId,
       prompt_id: promptId,
     };
-
     fetch(apiHost + '/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal,
     })
       .then((response) => {
         if (!response.body) throw Error('No response body');
@@ -183,7 +186,57 @@ export function fetchAnswerSteaming(
       });
   });
 }
+export function searchEndpoint(
+  question: string,
+  apiKey: string,
+  selectedDocs: Doc,
+  conversation_id: string | null,
+  history: Array<any> = [],
+) {
+  /*
+  "active_docs": "default",
+  "question": "Summarise",
+  "conversation_id": null,
+  "history": "[]" */
+  let namePath = selectedDocs.name;
+  if (selectedDocs.language === namePath) {
+    namePath = '.project';
+  }
 
+  let docPath = 'default';
+  if (selectedDocs.location === 'local') {
+    docPath = 'local' + '/' + selectedDocs.name + '/';
+  } else if (selectedDocs.location === 'remote') {
+    docPath =
+      selectedDocs.language +
+      '/' +
+      namePath +
+      '/' +
+      selectedDocs.version +
+      '/' +
+      selectedDocs.model +
+      '/';
+  }
+
+  const body = {
+    question: question,
+    active_docs: docPath,
+    conversation_id,
+    history,
+  };
+  return fetch(`${apiHost}/api/search`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      return data;
+    })
+    .catch((err) => console.log(err));
+}
 export function sendFeedback(
   prompt: string,
   response: string,

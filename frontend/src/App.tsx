@@ -13,9 +13,8 @@ inject();
 export default function App() {
   const { isMobile } = useMediaQuery();
   const [navOpen, setNavOpen] = useState(!isMobile);
-
   return (
-    <div className="min-h-full min-w-full">
+    <div className="min-h-full min-w-full dark:bg-raisin-black">
       <Navigation navOpen={navOpen} setNavOpen={setNavOpen} />
       <div
         className={`transition-all duration-200 ${

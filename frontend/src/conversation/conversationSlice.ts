@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import store from '../store';
 import { fetchAnswerApi, fetchAnswerSteaming } from './conversationApi';
+import { searchEndpoint } from './conversationApi';
 import { Answer, ConversationState, Query, Status } from './conversationModels';
 import { getConversations } from '../preferences/preferenceApi';
 import { setConversations } from '../preferences/preferenceSlice';
@@ -15,17 +16,19 @@ const API_STREAMING = import.meta.env.VITE_API_STREAMING === 'true';
 
 export const fetchAnswer = createAsyncThunk<Answer, { question: string }>(
   'fetchAnswer',
-  async ({ question }, { dispatch, getState }) => {
+  async ({ question }, { dispatch, getState, signal }) => {
     const state = getState() as RootState;
     if (state.preference) {
       if (API_STREAMING) {
         await fetchAnswerSteaming(
           question,
+          signal,
           state.preference.apiKey,
           state.preference.selectedDocs!,
           state.conversation.queries,
           state.conversation.conversationId,
           state.preference.prompt.id,
+
           (event) => {
             const data = JSON.parse(event.data);
 
@@ -40,24 +43,23 @@ export const fetchAnswer = createAsyncThunk<Answer, { question: string }>(
                 .catch((error) => {
                   console.error('Failed to fetch conversations: ', error);
                 });
-            } else if (data.type === 'source') {
-              // check if data.metadata exists
-              let result;
-              if (data.metadata && data.metadata.title) {
-                const titleParts = data.metadata.title.split('/');
-                result = {
-                  title: titleParts[titleParts.length - 1],
-                  text: data.doc,
-                };
-              } else {
-                result = { title: data.doc, text: data.doc };
-              }
-              dispatch(
-                updateStreamingSource({
-                  index: state.conversation.queries.length - 1,
-                  query: { sources: [result] },
-                }),
-              );
+
+              searchEndpoint(
+                //search for sources post streaming
+                question,
+                state.preference.apiKey,
+                state.preference.selectedDocs!,
+                state.conversation.conversationId,
+                state.conversation.queries,
+              ).then((sources) => {
+                //dispatch streaming sources
+                dispatch(
+                  updateStreamingSource({
+                    index: state.conversation.queries.length - 1,
+                    query: { sources },
+                  }),
+                );
+              });
             } else if (data.type === 'id') {
               dispatch(
                 updateConversationId({
@@ -78,6 +80,7 @@ export const fetchAnswer = createAsyncThunk<Answer, { question: string }>(
       } else {
         const answer = await fetchAnswerApi(
           question,
+          signal,
           state.preference.apiKey,
           state.preference.selectedDocs!,
           state.conversation.queries,
@@ -167,7 +170,7 @@ export const conversationSlice = createSlice({
     ) {
       const { index, query } = action.payload;
       if (!state.queries[index].sources) {
-        state.queries[index].sources = [query.sources![0]];
+        state.queries[index].sources = query?.sources;
       } else {
         state.queries[index].sources!.push(query.sources![0]);
       }
@@ -192,6 +195,10 @@ export const conversationSlice = createSlice({
         state.status = 'loading';
       })
       .addCase(fetchAnswer.rejected, (state, action) => {
+        if (action.meta.aborted) {
+          state.status = 'idle';
+          return state;
+        }
         state.status = 'failed';
         state.queries[state.queries.length - 1].error =
           'Something went wrong. Please try again later.';
